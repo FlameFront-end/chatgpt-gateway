@@ -46,8 +46,18 @@ openai_router = APIRouter()
 # Global reference — set by server.py at startup
 _client: ChatGPTClient | None = None
 
-# Serialize all requests — single browser page, not thread-safe
-_lock = asyncio.Lock()
+# Serialize all requests — single browser page, not thread-safe.
+# Create lazily inside the running event loop to avoid
+# "Future attached to a different loop" errors when uvicorn reloads or runs
+# requests in a different loop than module-import time.
+_lock: asyncio.Lock | None = None
+
+
+def _get_lock() -> asyncio.Lock:
+    global _lock
+    if _lock is None:
+        _lock = asyncio.Lock()
+    return _lock
 
 MODEL_ID = "catgpt-browser"
 
@@ -418,7 +428,7 @@ async def create_image(
 
     client = _get_client()
 
-    async with _lock:
+    async with _get_lock():
         start_time = time.time()
 
         # Build an image-generation prompt.
@@ -541,7 +551,7 @@ async def create_chat_completion(
 
     client = _get_client()
 
-    async with _lock:
+    async with _get_lock():
         start_time = time.time()
 
         # ── Build the prompt ────────────────────────────────
