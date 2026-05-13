@@ -277,7 +277,7 @@ def _build_prompt(messages: list[ChatMessage]) -> str:
 def _build_tool_system_prompt(tools: list[ToolDefinition]) -> str:
     """
     Build a system-level instruction that tells ChatGPT about available tools.
-    
+
     When the model decides to call a tool, it should respond with a specific
     JSON format that we can parse.
     """
@@ -336,7 +336,7 @@ def _parse_tool_calls(
     code_block_match = re.search(
         r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", response_text
     )
-    
+
     json_str = None
     if code_block_match:
         json_str = code_block_match.group(1)
@@ -440,6 +440,13 @@ async def create_image(
             f"POST /v1/images/generations — prompt='{request.prompt[:80]}', "
             f"n={request.n}, size={request.size}, response_format={request.response_format}"
         )
+
+        # Always start a fresh chat so we don't accumulate images from prior
+        # requests and return stale results.
+        try:
+            await client.new_chat()
+        except Exception as e:
+            log.warning(f"new_chat failed (will reuse current): {e}")
 
         # Send to ChatGPT
         try:
