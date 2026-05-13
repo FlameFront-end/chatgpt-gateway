@@ -350,6 +350,30 @@ async def _wait_for_copy_button_or_image(
 
         if elapsed > 0 and elapsed % heartbeat == 0:
             log.debug(f"Still waiting for copy button or image... ({int(elapsed)}s)")
+            try:
+                diag = await page.evaluate(
+                    """
+                    () => ({
+                        articles: document.querySelectorAll('article').length,
+                        agentTurns: document.querySelectorAll('.agent-turn').length,
+                        imageContainers: document.querySelectorAll('div[id^="image-"]').length,
+                        estuaryImgs: document.querySelectorAll("img[src*='backend-api/estuary/content']").length,
+                        anyBackendImgs: document.querySelectorAll("img[src*='backend-api/']").length,
+                        copyButtons: document.querySelectorAll("button[data-testid='copy-turn-action-button']").length,
+                        stopButton: !!document.querySelector("button[data-testid='stop-button']"),
+                        sendButton: !!document.querySelector("button[data-testid='send-button']"),
+                    })
+                    """
+                )
+                log.info(
+                    f"DOM diag @ {int(elapsed)}s: articles={diag.get('articles')} "
+                    f"agentTurns={diag.get('agentTurns')} imageContainers={diag.get('imageContainers')} "
+                    f"estuaryImgs={diag.get('estuaryImgs')} anyBackendImgs={diag.get('anyBackendImgs')} "
+                    f"copyButtons={diag.get('copyButtons')} stopBtn={diag.get('stopButton')} "
+                    f"sendBtn={diag.get('sendButton')}"
+                )
+            except Exception as e:
+                log.debug(f"DOM diag failed: {e}")
             await idle_mouse_movement(page)
 
         await asyncio.sleep(poll_interval)
