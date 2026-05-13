@@ -88,6 +88,10 @@ class Selectors:
     # Images have alt="Generated image" and src from chatgpt.com/backend-api.
     # Image wrapper DIVs have id="image-{uuid}" and class group/imagegen-image.
     ASSISTANT_IMAGE = [
+        # GPT-5.5 / new image generation format (Nov 2025+)
+        "img[src*='backend-api/estuary/content']",
+        ".agent-turn img[src*='backend-api/']",
+        # Legacy DALL-E selectors
         "img[alt='Generated image']",
         "div[id^='image-'] img",
         "article img[alt='Generated image']",

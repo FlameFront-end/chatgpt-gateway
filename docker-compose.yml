@@ -21,8 +21,8 @@ services:
     restart: unless-stopped
 
     ports:
-      - "8000:8000"   # FastAPI API
-      - "6080:6080"   # noVNC web UI
+      - "8000:8000" # FastAPI API
+      - "6080:6080" # noVNC web UI
 
     volumes:
       # Persistent browser session — survives container restarts
@@ -43,7 +43,7 @@ services:
       - CHATGPT_URL=https://chatgpt.com
 
       # Timeouts
-      - RESPONSE_TIMEOUT=120000
+      - RESPONSE_TIMEOUT=300000
       - SELECTOR_TIMEOUT=10000
 
       # Human simulation
