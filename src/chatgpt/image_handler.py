@@ -47,9 +47,11 @@ async def detect_images_in_response(page: Page) -> list[dict]:
     result = await page.evaluate("""
         () => {
             const articles = document.querySelectorAll('article');
-            if (articles.length === 0) return [];
-
-            const lastTurn = articles[articles.length - 1];
+            // GPT-5.5 image responses may not be wrapped in <article>.
+            // Use last article when available, otherwise the whole document.
+            const lastTurn = articles.length > 0
+                ? articles[articles.length - 1]
+                : document.body;
 
             // Find generated images — primary: alt="Generated image"
             let images = lastTurn.querySelectorAll('img[alt="Generated image"]');
@@ -60,8 +62,9 @@ async def detect_images_in_response(page: Page) -> list[dict]:
                 if (containers.length > 0) {
                     const imgSet = new Set();
                     for (const c of containers) {
-                        const imgs = c.querySelectorAll('img');
-                        for (const img of imgs) imgSet.add(img);
+                        // Prefer the primary <img> (not the blurred/aria-hidden copies)
+                        const primary = c.querySelector('img:not([aria-hidden="true"])') || c.querySelector('img');
+                        if (primary) imgSet.add(primary);
                     }
                     images = [...imgSet];
                 }
@@ -76,7 +79,7 @@ async def detect_images_in_response(page: Page) -> list[dict]:
                     const src = img.src || '';
                     if (w > 200 && (
                         src.includes('backend-api/estuary') ||
-                        src.includes('chatgpt.com')
+                        src.includes('chatgpt.com/backend-api/')
                     )) {
                         large.push(img);
                     }

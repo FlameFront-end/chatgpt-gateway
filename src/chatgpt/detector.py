@@ -176,7 +176,28 @@ async def _detect_image_in_latest_turn(page: Page, previous_turn_signature: str 
     is_new_turn = previous_turn_signature is None or (
         isinstance(signature, str) and signature != previous_turn_signature
     )
-    return bool(is_new_turn and snapshot.get("hasImage"))
+    if is_new_turn and snapshot.get("hasImage"):
+        return True
+
+    # Global fallback: GPT-5.5 image responses may not be wrapped in <article>.
+    # Detect any generated image by stable markers (id="image-*" container or
+    # estuary CDN src) anywhere in the document.
+    has_global_image = await page.evaluate(
+        """
+        () => {
+            if (document.querySelector('div[id^="image-"] img')) return true;
+            if (document.querySelector("img[src*='backend-api/estuary/content']")) return true;
+            const imgs = document.querySelectorAll('img');
+            for (const img of imgs) {
+                const src = img.src || '';
+                const w = img.naturalWidth || img.width || 0;
+                if (w > 200 && src.includes('chatgpt.com/backend-api/')) return true;
+            }
+            return false;
+        }
+        """
+    )
+    return bool(has_global_image)
 
 
 async def _count_copy_buttons(page: Page) -> int:
